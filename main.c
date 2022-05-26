@@ -1,25 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <float.h>
 
-void printMatrix(double *matrix, const int *SIZE) {
-    for (int i = 0; i < *SIZE * *SIZE; ++i) {
-        if (i % *SIZE == 0)printf("\n");
+void printMatrix(double *matrix, const unsigned SIZE) {
+    for (unsigned i = 0; i < SIZE * SIZE; ++i) {
+        if (i % SIZE == 0)printf("\n");
         printf("%f ", matrix[i]);
     }
     printf("\n");
 }
 
-double diagonalMultiplication(const double *matrix, const int *SIZE) {
+double diagonalMultiplication(const double *matrix, const unsigned SIZE) {
     double rez = 1;
-    for (int i = *SIZE; i >= 1; --i) rez *= matrix[(*SIZE + 1) * (*SIZE - i)];
+    for (unsigned i = SIZE; i >= 1; --i) rez *= matrix[(SIZE + 1) * (SIZE - i)];
     return rez;
 }
 
-int zeroesCheck(const double *range, const int n, const int *SIZE) {
+int zeroesCheck(const double *range, const int n, const unsigned *SIZE) {
     int count = 0, flag = 1;
-    for (int i = n; i < *SIZE; ++i)
+    for (unsigned i = n; i < *SIZE; ++i)
         if (range[i] == 0 && flag) {
             count++;
         } else flag = 0;
@@ -32,18 +31,18 @@ int power(int a, int b) {
     return rez;
 }
 
-void swap(double *range, int n, const int *SIZE) {
+void swap(double *range, unsigned n, const unsigned *SIZE) {
     double tmp;
-    for (int i = n; i < n + *SIZE; ++i) {
+    for (unsigned i = n; i < n + *SIZE; ++i) {
         tmp = range[i];
         range[i] = range[i + *SIZE];
         range[i + *SIZE] = tmp;
     }
 }
 
-int sort(double *matrix, const int *SIZE) {
+int sort(double *matrix, const unsigned *SIZE) {
     int count = 0;
-    for (int i = 0; i < (*SIZE - 1) * *SIZE; i += *SIZE)
+    for (unsigned i = 0; i < (*SIZE - 1) * *SIZE; i += *SIZE)
         if (zeroesCheck(matrix, i, SIZE) > zeroesCheck(matrix, i + *SIZE, SIZE)) {
             count++;
             swap(matrix, i, SIZE);
@@ -51,21 +50,28 @@ int sort(double *matrix, const int *SIZE) {
     return power(-1, count);
 }
 
-double gaussianDeterminant(double *matrix, int *SIZE) {
-    int size = *SIZE;
-    double first, factor;
+double gaussianDeterminant(double *matrix, const unsigned SIZE) {
+    unsigned size = SIZE;
+    int k = 1, flag = 1;
+    double first, factor, res;
     while (size > 1) {
-        if (matrix[(*SIZE + 1) * (*SIZE - size)] == 0) return 0;
-        first = matrix[(*SIZE + 1) * (*SIZE - size)];
-        for (int i = (*SIZE + 1) * (*SIZE - size) + *SIZE; i < *SIZE * *SIZE; i += *SIZE) {
-            factor = matrix[i] / first;
-            for (int j = 0; j < size; ++j) {
-                matrix[i + j] -= matrix[(*SIZE + 1) * (*SIZE - size) + j] * factor;
-            }
+        if (matrix[(SIZE + 1) * (SIZE - size)] == 0) {
+            flag = 0;
+            break;
         }
+        first = matrix[(SIZE + 1) * (k - 1)];
+        for (unsigned ind = 0; ind < size * size - size; ++ind) {
+            unsigned i = (ind / size * SIZE + SIZE - 1 - ind % size + k * SIZE); // reverse
+            factor = matrix[(i / SIZE) * SIZE + k - 1] / first;
+            matrix[i] -= matrix[(k - 1) * SIZE + i % SIZE] * factor;
+        }
+        k++;
         size--;
     }
-    return diagonalMultiplication(matrix, SIZE);
+    if (flag)
+        res = diagonalMultiplication(matrix, SIZE);
+    else res = 0;
+    return res;
 }
 
 void init() {
@@ -80,20 +86,21 @@ void init() {
     }
     double *matrix;
     double determinant;
-    int SIZE, sign;
+    unsigned SIZE;
+    int sign;
     clock_t time_start, time_finish;
-    while (fscanf(fp1, "%d", &SIZE) == 1) {
+    while (fscanf(fp1, "%u", &SIZE) == 1) {
+        time_start = clock();
         matrix = (double *) malloc(SIZE * SIZE * sizeof(double));
         if (!matrix)exit(-3);
-        for (int i = 0; i < SIZE * SIZE; ++i) {
+        for (unsigned i = 0; i < SIZE * SIZE; ++i) {
             fscanf(fp1, "%lf", &matrix[i]);
         }
-        time_start = clock();
         sign = sort(matrix, &SIZE);
-        determinant = gaussianDeterminant(matrix, &SIZE) * (double) sign;
+        determinant = gaussianDeterminant(matrix, SIZE) * (double) sign;
         time_finish = clock();
         fprintf(fp2, "%ld %f\n", time_finish - time_start, determinant);
-        if (determinant > DBL_MAX) exit(-2);
+        printf("%d\n", SIZE);
         free(matrix);
     }
     fclose(fp1);
